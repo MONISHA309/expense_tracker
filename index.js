@@ -38,7 +38,7 @@ app.use(cors())
 
 async function connectToDb() {
     try {
-        await mongoose.connect('mongodb+srv://shri:1234@cluster0.ojhi76l.mongodb.net/ExpenseTracker?retryWrites=true&w=majority&appName=Cluster0')
+        await mongoose.connect('mongodb+srv://monishak:monisha@expense-tracker.qa5zgel.mongodb.net/expense_tracker?retryWrites=true&w=majority&appName=expense-tracker')
         console.log('DB connection established ;)')
         const port = process.env.PORT || 8000
         app.listen(port, function() {
