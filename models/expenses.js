@@ -1,7 +1,7 @@
 const mongoose = require('mongoose')
 const expenseSchema = new mongoose.Schema({
+    text : { type: String, required: true },
     amount : { type: Number, required: true },
-    desc : { type: String, required: true },
 })
 
 const Expense = mongoose.model('Expense',expenseSchema)
