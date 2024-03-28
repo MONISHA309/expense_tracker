@@ -1,138 +1,138 @@
-// const express = require('express')
-// const app = express()
-// const port = 3000
-
-// app.get('/expenses', (req, res) => {                         //  '/expense' defines the path where the res inside it send to client , also used in postman
-//   res.send('expensesss...')                                   // no 2 send response will appear
-// //   req.send("hii")                                           // won't work coz of 2 res
-// })
-
-// // but others methods will work put, post, delete
-
-// // app.get('/expenses', (req, res) => {                         
-// //   res.send('expensesss...')                                   // this res wont work coz of 2 res
-// // })
-
-// app.listen(port, () => {
-//   console.log(`Example app listening on port ${port}`)
-//   console.log("before using postman runn index.js brooo....")
-// })
-
-
-// // to check whether GET is working do to http://localhost:3000 -> console -> network -> reload -> press localhost -> request mode : GET
-
-
-
-
-
-
-
+const bodyParser = require('body-parser')
+const cors = require('cors')
 const express = require('express')
 const mongoose = require('mongoose')
-const cors = require('cors');
+const { Expense } = require('./schema.js')
+/** 
+ * Expense Tracker
+ * 
+ * Adding a new expense -> /add-expense
+ * post : expenses details
+ * 
+ * displaying existing records -> /get-expenses
+ * get
+ * 
+ * delete an expense -> /delete-expense
+ * delete : id of the entry
+ * 
+ * updating an existing an one -> update-expense
+ * patch : id of the entry, expenses details
+*/
+
+/**
+ * Database Schema
+ * amount, category, date
+ */
+
+/**
+ * 200 - ok
+ * 201 - created
+ * 401 - unauthorized
+ * 404 - page not found
+ * 500 - internal server error
+ */
+
 const app = express()
-const port = process.env.PORT || 8000             // if mentioned port is not available in that server then it will take available port in that server 
+app.use(bodyParser.json())
+app.use(cors())
 
-app.use(cors());
-const Expense = require('./models/expenses')
-mongoose.connect('mongodb+srv://monishak:monisha@expense-tracker.qa5zgel.mongodb.net/expense_tracker?retryWrites=true&w=majority&appName=expense-tracker',{
-    useUnifiedTopology: true
-})
-app.use(express.json())              // allows only new entry
-
-
-
-app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).send('Something went wrong!');
-  });
-
-
-
-// find all
-app.get('/expenses', async(req,res)=>{
-    try{
-        const result = await Expense.find();
-        res.send(result)
-    }
-    catch(err){
-        next(err)
-    }
-})
-
-
-// app.post('/expenses', async(req,res)=>{
-//     res.send('<h1>hello</h1>')
-// })
-
-// find one
-// app.get('/expenses/:id', async(req,res)=>{
-//     console.log(req.params)
-//     res.send(req.params)
-// })
-
-
-// find one
-app.get('/expenses/:id', async(req,res)=>{
-    try{
-        const id = req.params.id
-        const result = await Expense.findById(id)
-        if(result)
-            res.send(result)
-        else
-            res.send("no expense with that id")
-    }
-    catch(err){
-        next(err)
-    }
-})
-
-
-// delete
-app.delete('/expenses/:id', async(req,res)=>{
-    try{
-        const id = req.params.id
-        const result = await Expense.findByIdAndDelete(id)
-        if(result)
-            res.send(result)
-        else
-            res.send("no expense with that id")
-    }
-    catch(err){
-        next(err)
-    }
-})
-
-app.post('/expenses',async(req,res)=>{
-    try{
-        console.log(req.body)
-        const newExpense = req.body
-        await Expense.create(newExpense)
-        res.send('created')
-    }
-    catch(err){
-        next(err)
-    }
-})
-
-//update
-
-app.put('/expenses/:id',async(req,res)=>{
-    try{
-        const id = req.params.id
-        const updateObject = req.body
-        const updatedObject = await Expense.findByIdAndUpdate(id,{$set:updateObject},{
-            new: true
+async function connectToDb() {
+    try {
+        await mongoose.connect('mongodb+srv://shri:1234@cluster0.ojhi76l.mongodb.net/ExpenseTracker?retryWrites=true&w=majority&appName=Cluster0')
+        console.log('DB connection established ;)')
+        const port = process.env.PORT || 8000
+        app.listen(port, function() {
+            console.log(`Listening on port ${port}...`)
         })
-        res.send(updatedObject)
+    } catch(error) {
+        console.log(error)
+        console.log('Cloudn\'t establish connection :(')
     }
-    catch(err){
-        next(err)
+}
+connectToDb()
+
+app.post('/add-expense', async function(request, response) {
+    try {
+        await Expense.create({
+            "amount" : request.body.amount,
+            "category" : request.body.category,
+            "date" : request.body.date
+        })
+        response.status(201).json({
+            "status" : "success",
+            "message" : "entry created"
+        })
+    } catch(error) {
+        response.status(500).json({
+            "status" : "failure",
+            "message" : "entry not created",
+            "error" : error
+        })
     }
 })
 
+app.get('/get-expenses', async function(request, response) {
+    try {
+        const expenseDetails = await Expense.find()
+        response.status(200).json(expenseDetails)
+    } catch(error) {
+        response.status(500).json({
+            "status" : "failure",
+            "message" : "could not fetch data",
+            "error" : error
+        })
+    }
+})
 
+// localhost:8000/delete-expense/65efdf58a22a20e156658094
+app.delete('/delete-expense/:id', async function(request, response) {
+    try {
+        const expenseEntry = await Expense.findById(request.params.id)
+        if(expenseEntry) {
+            await Expense.findByIdAndDelete(request.params.id)
+            response.status(200).json({
+                "status" : "success",
+                "message" : "entry deleted"
+            })
+        } else {
+            response.status(404).json({
+                "status" : "failure",
+                "message" : "entry not found"
+            })
+        }
+    } catch(error) {
+        response.status(500).json({
+            "status" : "failure",
+            "message" : "could not delete entry",
+            "error" : error
+        })
+    }
+})
 
-app.listen(port,()=>{
-    console.log(`started listening to port ${port}`)
+app.patch('/update-expense/:id', async function(request, response) {
+    try {
+        const expenseEntry = await Expense.findById(request.params.id)
+        if(expenseEntry) {
+            await expenseEntry.updateOne({
+                "amount" : request.body.amount,
+                "category" : request.body.category,
+                "date" : request.body.date
+            })
+            response.status(200).json({
+                "status" : "success",
+                "message" : "entry updated"
+            })
+        } else {
+            response.status(404).json({
+                "status" : "failure",
+                "message" : "entry not found"
+            })
+        }
+    } catch(error) {
+        response.status(500).json({
+            "status" : "failure",
+            "message" : "could not update entry",
+            "error" : error
+        })
+    }
 })
