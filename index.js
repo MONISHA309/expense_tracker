@@ -2,7 +2,7 @@ const bodyParser = require('body-parser')
 const cors = require('cors')
 const express = require('express')
 const mongoose = require('mongoose')
-const { Expense } = require('./schema.js')
+const { Expense } = require('./models/expenses.js')
 /** 
  * Expense Tracker
  * 
@@ -36,103 +36,120 @@ const app = express()
 app.use(bodyParser.json())
 app.use(cors())
 
-async function connectToDb() {
-    try {
-        await mongoose.connect('mongodb+srv://monishak:monisha@expense-tracker.qa5zgel.mongodb.net/expense_tracker?retryWrites=true&w=majority&appName=expense-tracker')
-        console.log('DB connection established ;)')
-        const port = process.env.PORT || 8000
-        app.listen(port, function() {
-            console.log(`Listening on port ${port}...`)
-        })
-    } catch(error) {
-        console.log(error)
-        console.log('Cloudn\'t establish connection :(')
-    }
-}
-connectToDb()
+mongoose.connect('mongodb+srv://monisha309:monisha309@expense-tracker.jau9mxu.mongodb.net/?retryWrites=true&w=majority&appName=Expense-Tracker')
+        
 
-app.post('/add-expense', async function(request, response) {
-    try {
-        await Expense.create({
-            "amount" : request.body.amount,
-            "category" : request.body.category,
-            "date" : request.body.date
-        })
-        response.status(201).json({
-            "status" : "success",
-            "message" : "entry created"
-        })
-    } catch(error) {
-        response.status(500).json({
-            "status" : "failure",
-            "message" : "entry not created",
-            "error" : error
-        })
-    }
-})
+// index.js
 
-app.get('/get-expenses', async function(request, response) {
-    try {
-        const expenseDetails = await Expense.find()
-        response.status(200).json(expenseDetails)
-    } catch(error) {
-        response.status(500).json({
-            "status" : "failure",
-            "message" : "could not fetch data",
-            "error" : error
-        })
-    }
-})
+app.post('/add-expense', function(request, response) {
+    Expense.create({
+        amount: request.body.amount,
+        category: request.body.category,
+        date: new Date().toISOString(),
+        type: request.body.type // Add the transaction type to the database
+    }, function(error, result) {
+        if (error) {
+            response.status(500).json({
+                status: "failure",
+                message: "entry not created",
+                error: error
+            });
+        } else {
+            response.status(201).json({
+                status: "success",
+                message: "entry created"
+            });
+        }
+    });
+});
+
+
+app.get('/get-expenses', function(request, response) {
+    Expense.find({}, function(error, expenseDetails) {
+        if (error) {
+            response.status(500).json({
+                status: "failure",
+                message: "could not fetch data",
+                error: error
+            });
+        } else {
+            response.status(200).json(expenseDetails);
+        }
+    });
+});
+
 
 // localhost:8000/delete-expense/65efdf58a22a20e156658094
-app.delete('/delete-expense/:id', async function(request, response) {
-    try {
-        const expenseEntry = await Expense.findById(request.params.id)
-        if(expenseEntry) {
-            await Expense.findByIdAndDelete(request.params.id)
-            response.status(200).json({
-                "status" : "success",
-                "message" : "entry deleted"
-            })
+app.delete('/delete-expense/:id', function(request, response) {
+    Expense.findById(request.params.id, function(error, expenseEntry) {
+        if (error) {
+            response.status(500).json({
+                status: "failure",
+                message: "could not find entry",
+                error: error
+            });
         } else {
-            response.status(404).json({
-                "status" : "failure",
-                "message" : "entry not found"
-            })
+            if (expenseEntry) {
+                Expense.findByIdAndDelete(request.params.id, function(err) {
+                    if (err) {
+                        response.status(500).json({
+                            status: "failure",
+                            message: "could not delete entry",
+                            error: err
+                        });
+                    } else {
+                        response.status(200).json({
+                            status: "success",
+                            message: "entry deleted"
+                        });
+                    }
+                });
+            } else {
+                response.status(404).json({
+                    status: "failure",
+                    message: "entry not found"
+                });
+            }
         }
-    } catch(error) {
-        response.status(500).json({
-            "status" : "failure",
-            "message" : "could not delete entry",
-            "error" : error
-        })
-    }
-})
+    });
+});
 
-app.patch('/update-expense/:id', async function(request, response) {
-    try {
-        const expenseEntry = await Expense.findById(request.params.id)
-        if(expenseEntry) {
-            await expenseEntry.updateOne({
-                "amount" : request.body.amount,
-                "category" : request.body.category,
-                "date" : request.body.date
-            })
-            response.status(200).json({
-                "status" : "success",
-                "message" : "entry updated"
-            })
+
+app.patch('/update-expense/:id', function(request, response) {
+    Expense.findById(request.params.id, function(error, expenseEntry) {
+        if (error) {
+            response.status(500).json({
+                status: "failure",
+                message: "could not find entry",
+                error: error
+            });
         } else {
-            response.status(404).json({
-                "status" : "failure",
-                "message" : "entry not found"
-            })
+            if (expenseEntry) {
+                expenseEntry.updateOne({
+                    "amount": request.body.amount,
+                    "category": request.body.category,
+                    "date": request.body.date
+                }, function(err) {
+                    if (err) {
+                        response.status(500).json({
+                            status: "failure",
+                            message: "could not update entry",
+                            error: err
+                        });
+                    } else {
+                        response.status(200).json({
+                            status: "success",
+                            message: "entry updated"
+                        });
+                    }
+                });
+            } else {
+                response.status(404).json({
+                    status: "failure",
+                    message: "entry not found"
+                });
+            }
         }
-    } catch(error) {
-        response.status(500).json({
-            "status" : "failure",
-            "message" : "could not update entry",
-            "error" : error
-        })
-    }
-})
+    });
+});
+
