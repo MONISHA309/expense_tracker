@@ -1,24 +1,24 @@
-// models/expenses.js
+const mongoose = require('mongoose');
 
-const mongoose = require('mongoose')
-
-const expenseTrackerSchema = new mongoose.Schema({
+const expenseSchema = new mongoose.Schema({
     amount: {
-        type: Number
+        type: Number,
+        required: true
     },
     category: {
-        type: String
+        type: String,
+        required: true
     },
     date: {
-        type: String
+        type: Date,
+        default: Date.now
     },
     type: {
-        type: String, // 'income' or 'expense'
-        enum: ['income', 'expense'], // Only allows 'income' or 'expense' as values
-        required: true // Make it a required field
+        type: String,
+        required: true
     }
-})
+});
 
-const Expense = mongoose.model('expensedetails', expenseTrackerSchema)
+const Expense = mongoose.model('Expense', expenseSchema);
 
-module.exports = { Expense }
+module.exports = { Expense };
